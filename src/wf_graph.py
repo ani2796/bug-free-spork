@@ -22,4 +22,3 @@ class wf_graph:
         # 4. if at some point you see a link back to `node`, return true
         # 5. if encounter green nodes, OR their exploration results with the others
         pass
-
