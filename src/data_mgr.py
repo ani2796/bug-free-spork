@@ -6,5 +6,7 @@ class data_mgr:
         # TODO: Initialize data manager with variables, lock table
         # TODO: Figure out enumerations in Python, use for node modes
         self.mode = "normal"
-        pass
+        self.variables = {}
 
+    def __str__(self) -> str:
+        return "mode: " + self.mode + "\nvariables" + str(self.variables)
