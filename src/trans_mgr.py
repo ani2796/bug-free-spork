@@ -6,39 +6,15 @@ class trans_mgr:
         print("Creating transaction manager")
         self.time = 0
         self.trans_set = {}
-        self.data_mgrs = self.init_data_mgrs()
-        for mgr in self.data_mgrs:
-            print(mgr)
-        
+
+        self.data_mgrs = [None] * 11        
+        for mgr_idx in range(1, 11, 1):
+            self.data_mgrs[mgr_idx] = data_mgr.data_mgr(mgr_idx)
+            print(mgr_idx, self.data_mgrs[mgr_idx])
+
         # TODO: Initialize necessary data structures: wf graph, sites, time
         # TODO: Initialize knowledge of which variable is at which site
         # TODO: Maintain list of handled transactions
-    
-    
-    # Initializing nodes
-    def init_data_mgrs(self):
-        data_mgrs = [data_mgr.data_mgr()] * 11
-            
-        # Looping through variables, init commit each variable at each node
-        for idx in range(1, 20, 1):
-            var = "x" + str(idx)
-            init_val = 10 * idx
-
-            # Even indexed variables
-            if(idx % 2 == 0):
-                for mgr in data_mgrs:
-                    mgr.variables[var] = {
-                        "commit_time": self.time,
-                        "value": init_val
-                    }
-            # Odd indexes variables
-            else:
-                data_mgrs[1 + (idx % 10)].variables[var] = {
-                    "commit_time": self.time,
-                    "value": init_val
-                }
-
-        return data_mgrs
 
     def commit_validation(self):
         print("Committing transaction")
