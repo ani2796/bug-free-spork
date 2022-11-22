@@ -10,19 +10,24 @@ class trans_mgr:
         self.data_mgrs = [None] * 11        
         for mgr_idx in range(1, 11, 1):
             self.data_mgrs[mgr_idx] = data_mgr.data_mgr(mgr_idx)
-            print(mgr_idx, self.data_mgrs[mgr_idx])
+        
+        op = {
+            "cmd": "dump"
+        }
+
+        self.operate(op)
 
         # TODO: Initialize necessary data structures: wf graph, sites, time
         # TODO: Initialize knowledge of which variable is at which site
         # TODO: Maintain list of handled transactions
 
-    def commit_validation(self):
-        print("Committing transaction")
-
     def operate(self, op):
         # TODO: This will be the most complicated part -- dealing with incoming operations
         self.time += 1
         print(op)
+
+        def commit_validation(self):
+            print("Committing transaction")
 
         # Incoming transaction is a "begin"
         if(op["cmd"] == "begin"):
@@ -32,6 +37,7 @@ class trans_mgr:
             self.trans_set[new_trans] = {
                 "entry_time": self.time
             }
+            
             print("Creating new transaction", self.trans_set[new_trans])
         
         elif(op["cmd"] == "beginRO"):
@@ -43,9 +49,10 @@ class trans_mgr:
             # TODO: Else, abort
             pass
         
+        
         elif(op["cmd"] == "dump"):
-            # TODO: Print committed values at all sites in variable order
-            pass
+            for mgr_idx in range(1, 11, 1):
+                print(mgr_idx, self.data_mgrs[mgr_idx])
 
         elif(op["cmd"] == "W"):
             # TODO: Check if transaction can obtain write locks on all `up` sites
@@ -98,3 +105,5 @@ if __name__ == "__main__":
             continue
         elif(groups := operation_regex.match(line).groups()):
             tm.operate(make_operation(groups))
+
+    

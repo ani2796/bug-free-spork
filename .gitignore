@@ -3,3 +3,6 @@
 
 # Pytest cache
 **/.pytest_cache
+
+# Test output
+*.out

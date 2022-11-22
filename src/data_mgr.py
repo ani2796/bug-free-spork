@@ -1,6 +1,8 @@
 # Variables need to have commits and uncommitted versions
 # Data mgrs need to have a variable "mode": normal, failed or recovered
 
+import lock_table
+
 class data_mgr:
     def __init__(self, idx) -> None:
         # TODO: Initialize data manager with variables, lock table
@@ -22,7 +24,8 @@ class data_mgr:
                     "commit_time": 0,
                     "value": var_idx * 10
                 }]
-                
+        
+        self.lock_table = lock_table.lock_table(self.variables)
 
     def __str__(self) -> str:
-        return "mode: " + self.mode + "\nvariables" + str(self.variables)
+        return "mode: " + self.mode + "\nvariables" + str(self.variables) + "\n" + str(self.lock_table)
