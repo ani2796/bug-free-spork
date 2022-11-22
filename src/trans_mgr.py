@@ -1,54 +1,50 @@
 import re
 import data_mgr
+from collections import deque
 
 class trans_mgr:
     def __init__(self):
-        print("Creating transaction manager")
+        print("Transaction Manager: Creating...")
         self.time = 0
         self.trans_set = {}
 
         self.data_mgrs = [None] * 11        
         for mgr_idx in range(1, 11, 1):
             self.data_mgrs[mgr_idx] = data_mgr.data_mgr(mgr_idx)
-        
-        op = {
-            "cmd": "dump"
-        }
 
-        self.operate(op)
-
-        # TODO: Initialize necessary data structures: wf graph, sites, time
-        # TODO: Initialize knowledge of which variable is at which site
+        # TODO: Initialize necessary data structures: wf graph
         # TODO: Maintain list of handled transactions
 
+    def print_trans(self):
+        print("Transaction Manager: Printing transaction set...")
+        print(self.trans_set)
+
+    def commit_validation(self):
+        print("Transaction Manager: Committing...")
+
     def operate(self, op):
+        print("Transaction Manager: Processing Operation...")
         # TODO: This will be the most complicated part -- dealing with incoming operations
         self.time += 1
         print(op)
 
-        def commit_validation(self):
-            print("Committing transaction")
-
         # Incoming transaction is a "begin"
-        if(op["cmd"] == "begin"):
-
+        if(op["cmd"] == "begin" or op["cmd"] == "beginRO"):
             # Add new transaction to trans_mgr's list
             new_trans = op["args"][0]
             self.trans_set[new_trans] = {
-                "entry_time": self.time
+                "entry_time": self.time,
+                "failures": deque(),
+                "ro?": False if(op["cmd"] == "begin") else True,
+                "ops": deque()  
             }
-            
-            print("Creating new transaction", self.trans_set[new_trans])
-        
-        elif(op["cmd"] == "beginRO"):
-            # TODO: Read committed variables at begin time
-            pass
+            print("Transaction Manager: New transaction = ", self.trans_set[new_trans])
+
         elif(op["cmd"] == "end"):
             # TODO: Perform commit time validation
             # TODO: If valid, commit
             # TODO: Else, abort
             pass
-        
         
         elif(op["cmd"] == "dump"):
             for mgr_idx in range(1, 11, 1):
@@ -59,11 +55,11 @@ class trans_mgr:
             # TODO: If so, write all available copies
             # TODO: If not, release all locks
             pass
+
         elif(op["cmd"] == "R"):
             # TODO: Check if transaction is RO
             # TODO: If so, then refer (1)
             # TODO: Otherwise, refer (2)
-
             # TODO: (1) If variable Xi is not replicated, then read if site is up
             # TODO: (1) --- Find out what happens if Xi is not replicated and site is down ---
             # TODO: (1) If variable Xi is replicated, check sites in order. At site S, check: 
@@ -71,7 +67,6 @@ class trans_mgr:
             # TODO:     (b) If S was up from Xi's commit by T' to RO start
             # TODO: (1) If the above conditions are met, read the version T' wrote
             # TODO: (1) If there is no S, then abort
-
             # TODO: (2) Check if transaction can obtain read locks on any `up` site
             # TODO: (2) If so, 
             pass
@@ -85,9 +80,6 @@ def make_operation(groups):
     }
 
 if __name__ == "__main__":
-    # print("Hello, world.")
-    
-    # TODO: Read from transaction set file, call TM on each operation
     # Reading transactions from file
     trans_set_file = open("trans-sets/set-1", "r")
     tm = trans_mgr()
