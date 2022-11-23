@@ -1,5 +1,7 @@
 import pytest
 import trans_mgr
+import data_mgr
+import lock_table
 from collections import deque
 
 # Sample test
@@ -9,34 +11,40 @@ def test_always_passes():
 def test_shared_read_locks():
     tm = trans_mgr.trans_mgr()
     data_mgr = tm.data_mgrs[1]
+    lock_table = data_mgr.view_lock_table()
 
-    data_mgr.lock_var("T1", "x2", "read")
-    data_mgr.lock_var("T2", "x2", "read")
-    data_mgr.lock_var("T3", "x2", "read")
-    result = data_mgr.view_lock_table().view_lock("x2")
+    data_mgr.test_lock_var("T1", "x2", "read", to_lock = True)
+    data_mgr.test_lock_var("T2", "x2", "read", to_lock = True)
+    data_mgr.test_lock_var("T3", "x2", "read", to_lock = True)
+    result = lock_table.view_lock("x2")
     print("locks on x2", result)
 
-    assert data_mgr.view_lock_table().view_lock("x2")["trans"] == deque(['T1', 'T2', 'T3'])
+    assert lock_table.view_lock("x2")["trans"] == deque(['T1', 'T2', 'T3'])
 
 def test_upgrade_lock():
     tm = trans_mgr.trans_mgr()
     data_mgr = tm.data_mgrs[1]
+    lock_table = data_mgr.view_lock_table()
 
-    data_mgr.lock_var("T1", "x2", "read")
-    data_mgr.lock_var("T2", "x2", "read")
-    assert data_mgr.lock_var("T1", "x2", "write") == False  
+    data_mgr.test_lock_var("T1", "x2", "read", to_lock = True)
+    data_mgr.test_lock_var("T2", "x2", "read", to_lock = True)
+    assert data_mgr.test_lock_var("T1", "x2", "write", to_lock = False) == False
 
-    data_mgr.unlock_var("T2", "x2", "read")    
-    assert  data_mgr.lock_var("T1", "x2", "write") == True
+    var_lock = lock_table.view_lock("x2")
+    assert (var_lock["type"] == "read" and "T1" in var_lock["trans"] and "T2" in var_lock["trans"])
+    assert lock_table.view_lock("x2")["type"] == "read"
+
+    data_mgr.unlock_var("T2", "x2")
+    assert  data_mgr.test_lock_var("T1", "x2", "write") == True
 
 def test_exclusive_write_locks():
     tm = trans_mgr.trans_mgr()
     data_mgr = tm.data_mgrs[1]
 
-    data_mgr.lock_var("T1", "x2", "read")
-    assert data_mgr.lock_var("T2", "x2", "write") == False
+    data_mgr.test_lock_var("T1", "x2", "read", to_lock = True)
+    assert data_mgr.test_lock_var("T2", "x2", "write", to_lock = False) == False
 
-    data_mgr.unlock_var("T1", "x2", "read")
-    data_mgr.lock_var("T1", "x2", "write")
-    assert data_mgr.lock_var("T2", "x2", "write") == False
-    assert data_mgr.lock_var("T2", "x2", "read") == False
+    data_mgr.unlock_var("T1", "x2")
+    data_mgr.test_lock_var("T1", "x2", "write", to_lock = True)
+    assert data_mgr.test_lock_var("T2", "x2", "write", to_lock = False) == False
+    assert data_mgr.test_lock_var("T2", "x2", "read", to_lock = False) == False

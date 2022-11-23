@@ -22,6 +22,10 @@ class trans_mgr:
     def commit_validation(self):
         print("Transaction Manager: Committing...")
 
+    def can_obtain_lock(self, trans, var, lock):
+        # Check if a lock on a variable can be obtained by a transaction
+        pass
+
     def operate(self, op):
         print("Transaction Manager: Processing Operation...")
         # TODO: This will be the most complicated part -- dealing with incoming operations
@@ -39,16 +43,6 @@ class trans_mgr:
                 "ops": deque()  
             }
             print("Transaction Manager: New transaction = ", self.trans_set[new_trans])
-
-        elif(op["cmd"] == "end"):
-            # TODO: Perform commit time validation
-            # TODO: If valid, commit
-            # TODO: Else, abort
-            pass
-        
-        elif(op["cmd"] == "dump"):
-            for mgr_idx in range(1, 11, 1):
-                print(mgr_idx, self.data_mgrs[mgr_idx])
 
         elif(op["cmd"] == "W"):
             # TODO: Check if transaction can obtain write locks on all `up` sites
@@ -70,6 +64,18 @@ class trans_mgr:
             # TODO: (2) Check if transaction can obtain read locks on any `up` site
             # TODO: (2) If so, 
             pass
+
+        elif(op["cmd"] == "end"):
+            # TODO: Perform commit time validation
+            # TODO: If valid, commit
+            # TODO: Else, abort
+            pass
+        
+        elif(op["cmd"] == "dump"):
+            for mgr_idx in range(1, 11, 1):
+                print(mgr_idx, self.data_mgrs[mgr_idx])
+
+
 
 
 # Create operation objects from groups
