@@ -9,19 +9,23 @@ def test_always_passes():
     assert True
 
 def test_shared_read_locks():
+    # Initiating TM
     tm = trans_mgr.trans_mgr()
     data_mgr = tm.data_mgrs[1]
     lock_table = data_mgr.view_lock_table()
 
+    # T1, T2, T3 all share read lock on x2
     data_mgr.test_lock_var("T1", "x2", "read", to_lock = True)
     data_mgr.test_lock_var("T2", "x2", "read", to_lock = True)
     data_mgr.test_lock_var("T3", "x2", "read", to_lock = True)
-    result = lock_table.view_lock("x2")
-    print("locks on x2", result)
+    lock = lock_table.view_lock("x2")
 
-    assert lock_table.view_lock("x2")["trans"] == deque(['T1', 'T2', 'T3'])
+    # Checking that 
+    assert lock["trans"] == deque(['T1', 'T2', 'T3'])
+    assert lock["type"] == "read"
 
 def test_upgrade_lock():
+    # Initiating TM
     tm = trans_mgr.trans_mgr()
     data_mgr = tm.data_mgrs[1]
     lock_table = data_mgr.view_lock_table()
@@ -38,6 +42,7 @@ def test_upgrade_lock():
     assert  data_mgr.test_lock_var("T1", "x2", "write") == True
 
 def test_exclusive_write_locks():
+    # Initiating TM
     tm = trans_mgr.trans_mgr()
     data_mgr = tm.data_mgrs[1]
 

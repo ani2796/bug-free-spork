@@ -3,15 +3,25 @@
 # TM checks that it can obtain a lock on that variable at all possible replicated spots
 
 class wf_graph:
-    def __init__(self) -> None:
-        # TODO: Initialize waits for graph
-        self.adj_list = {
-            # TODO: Figure out how to initialize graph nodes in Python
-            # TODO; Each node has a color (init to red) to assist with BFS exploration (turns green)
-            # TODO: Node color reset to red after explorations
-        }
+    def __init__(self, transs) -> None:
+        # 
+        self.adj_list = {}
+        # TODO; Each node has a color (init to red) to assist with BFS exploration (turns green)
+        # TODO: Node color reset to red after explorations
+
+        
+        for node in self.adj_list.items():
+            self.adj_list[node] = []
         pass
 
+    def reset_check(self):
+        pass
+
+    def add_edge(self, src, dest):
+        self.adj_list[src].append(dest)
+    
+
+    
     def cycle_check(self, node):
         # TODO: Check if the graph has a cycle that contains `node``
         # TODO: Cycle check using BFS
