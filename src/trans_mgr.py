@@ -37,8 +37,7 @@ class trans_mgr:
         return False
 
     def print_trans(self):
-        print("TM: Printing transaction set...")
-        print(self.trans_set)
+        print("TM: Printing transaction set", self.trans_set)
 
     def commit_validation(self):
         print("Transaction Manager: Committing...")
