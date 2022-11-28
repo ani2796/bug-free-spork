@@ -65,11 +65,11 @@ def test_wf():
     graph.add_edge("T1", "T2")
     graph.add_edge("T2", "T3")
     graph.add_edge("T2", "T4")
-    graph.add_edge("T4", "T1")
+    graph.add_edge("T4", "T2")
 
     # (graph)
 
-    assert graph.cycle_check() == True
+    assert graph.cycle_check() == (deque(["T2", "T4"]), True)
 
     tm = trans_mgr.trans_mgr()
     graph = tm.get_wf_graph()
@@ -83,7 +83,7 @@ def test_wf():
     graph.add_edge("T2", "T3")
     graph.add_edge("T2", "T4")
 
-    assert graph.cycle_check() == False
+    assert graph.cycle_check() == (None, False)
 
     # Disconnected graph with a cycle
     graph.add_node("T1")
@@ -96,7 +96,7 @@ def test_wf():
     graph.add_edge("T4", "T5")
     graph.add_edge("T5", "T3")
 
-    assert graph.cycle_check() == True
+    assert graph.cycle_check() == (deque(["T3", "T4", "T5"]), True)
 
     # Disconnected graph without a cycle
     graph.add_node("T1")
@@ -109,4 +109,4 @@ def test_wf():
     graph.add_edge("T4", "T5")
     graph.add_edge("T3", "T5")
     
-    assert graph.cycle_check() == False
+    assert graph.cycle_check() == (None, False)

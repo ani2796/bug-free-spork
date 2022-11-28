@@ -32,34 +32,49 @@ class wf_graph:
 
     def cycle_check(self):
         is_cycle = False
+        cycle_nodes = None
         for (node, curr) in self.nodes.items():
             # ("cc: node", node)
+
             if(curr["color"] == "red"):
-                is_cycle = is_cycle or self.connected_cycle_check(node)
+                (cycle_nodes, is_component_cycle) = self.connected_cycle_check(node)
+                is_cycle = is_cycle or is_component_cycle
         
         # ("is cycle?", is_cycle)
         self.reset_graph()
 
-        return is_cycle
+        return (cycle_nodes, is_cycle)
     
+    def get_cycle(self, stack, cycle_start):
+        cycle_nodes = deque()
+        for node in stack:
+            cycle_nodes.appendleft(node)
+            if(node == cycle_start):
+                break
+        
+        print("gc: stack =", stack)
+        print("gc: cycle start =", cycle_start, ", end at curr")
+        print("gc: cycle nodes =", cycle_nodes)
+        return cycle_nodes
+
     def connected_cycle_check(self, start):
         stack = deque({start})
         # ("ccc: wf graph stack", stack)
 
         while(stack):
-            curr_node = self.nodes[stack[0]]
+            (node, curr) = (stack[0], self.nodes[stack[0]])
             # ("ccc: stack =", stack)
             # ("ccc: curr node =", stack[0], curr_node)
             self.nodes[stack[0]]["color"] = "green"
             is_end = True
             
-            for adj in curr_node["adj_list"]:
+            for adj in curr["adj_list"]:
                 is_end = True
                 adj_node = self.nodes[adj]
                 # ("ccc: adj: ", adj, adj_node)
                 if(adj_node["color"] == "green"):
                     if(adj in stack): # There is a cycle
-                        return True
+                        return (self.get_cycle(stack, adj), True)
                 else: # Unexplored node ==> cannot be part of a cycle yet
                     stack.appendleft(adj)
                     is_end = False
@@ -67,4 +82,4 @@ class wf_graph:
             if(is_end):
                 stack.popleft()
             
-        return False
+        return (None, False)
