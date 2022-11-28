@@ -1,7 +1,5 @@
 import pytest
 import trans_mgr
-import data_mgr
-import lock_table
 from collections import deque
 
 # Sample test
@@ -53,3 +51,62 @@ def test_exclusive_write_locks():
     data_mgr.test_lock_var("T1", "x2", "write", to_lock = True)
     assert data_mgr.test_lock_var("T2", "x2", "write", to_lock = False) == False
     assert data_mgr.test_lock_var("T2", "x2", "read", to_lock = False) == False
+
+
+def test_wf():
+    tm = trans_mgr.trans_mgr()
+    graph = tm.get_wf_graph()
+
+    # Connected graph with a cycle
+    graph.add_node("T1")
+    graph.add_node("T2")
+    graph.add_node("T3")
+    graph.add_node("T4")
+    graph.add_edge("T1", "T2")
+    graph.add_edge("T2", "T3")
+    graph.add_edge("T2", "T4")
+    graph.add_edge("T4", "T1")
+
+    # (graph)
+
+    assert graph.cycle_check() == True
+
+    tm = trans_mgr.trans_mgr()
+    graph = tm.get_wf_graph()
+
+    # Connected graph without a cycle
+    graph.add_node("T1")
+    graph.add_node("T2")
+    graph.add_node("T3")
+    graph.add_node("T4")
+    graph.add_edge("T1", "T2")
+    graph.add_edge("T2", "T3")
+    graph.add_edge("T2", "T4")
+
+    assert graph.cycle_check() == False
+
+    # Disconnected graph with a cycle
+    graph.add_node("T1")
+    graph.add_node("T2")
+    graph.add_node("T3")
+    graph.add_node("T4")
+    graph.add_node("T5")
+    graph.add_edge("T1", "T2")
+    graph.add_edge("T3", "T4")
+    graph.add_edge("T4", "T5")
+    graph.add_edge("T5", "T3")
+
+    assert graph.cycle_check() == True
+
+    # Disconnected graph without a cycle
+    graph.add_node("T1")
+    graph.add_node("T2")
+    graph.add_node("T3")
+    graph.add_node("T4")
+    graph.add_node("T5")
+    graph.add_edge("T1", "T2")
+    graph.add_edge("T3", "T4")
+    graph.add_edge("T4", "T5")
+    graph.add_edge("T3", "T5")
+    
+    assert graph.cycle_check() == False

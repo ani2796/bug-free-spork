@@ -9,6 +9,7 @@ class trans_mgr:
         self.time = 0
         self.trans_set = {}
         self.vars = {}
+        self.wf_cycle = False
 
         self.data_mgrs = [None] * 11        
         for mgr_idx in range(1, 11, 1):
@@ -20,11 +21,15 @@ class trans_mgr:
                 "curr": {}
             }
 
+        self.wf_graph = wf_graph.wf_graph()
         # TODO: Initialize necessary data structures: wf graph
 
-    def is_at_mgr(self, var, mgr_idx):
-        var_idx = int(var[1:])
+    def get_wf_graph(self):
+        return self.wf_graph
 
+    def is_at_mgr(self, var, mgr_idx):
+        # ("var + \"" + var + "\"")
+        var_idx = int(var[1:])
         
         # Even variables all sites, odd variables one site = (1 + idx) % 10
         if((var_idx % 2 == 0) or ((1 + var_idx) % 10 == mgr_idx)):
@@ -42,10 +47,20 @@ class trans_mgr:
         mgrs = self.data_mgrs
         for mgr_idx in range(1, 11, 1):
             if(self.is_at_mgr(var, mgr_idx) and not mgrs[mgr_idx].mode == "failed"):
-                mgrs[mgr_idx].write_var(var, val, self.time)
+                mgrs[mgr_idx].write_var(trans, var, val, self.time)
+
+    def ro_mgr_fail_check(self, mgr_idx, start_time, end_time):
+        mgr = self.data_mgrs[mgr_idx]
+
+        for failure in mgr.failures:
+            if( (failure["start"] > start_time and failure["start"] < end_time) or
+                (failure["end"] > start_time and failure["end"] < end_time)
+                ):
+                return False
+        return True
 
     def operate(self, op):
-        print("TM: Processing Operation...", op)
+        print("TM: processing operation", op)
         self.time += 1
 
         # Incoming transaction is a "begin"
@@ -58,7 +73,22 @@ class trans_mgr:
                 "ops": deque(),
                 "locks": {}
             }
-            print("TM: New transaction = ", self.trans_set[new_trans])
+            self.wf_graph.add_node(new_trans)
+            print("TM: new transaction", self.trans_set[new_trans])
+
+        elif(op["cmd"] == "fail"):
+            mgr_idx = int(op["args"][0])
+            self.data_mgrs[mgr_idx].failures.appendleft({
+                "start": self.time
+            })
+            print("TM: failed", mgr_idx, "updating mgr failures with", self.data_mgrs[mgr_idx].failures[0])
+
+        elif(op["cmd"] == "recover"):
+            mgr_idx = int(op["args"][0])
+
+            self.data_mgrs[mgr_idx].failures[0]["end"] = self.time
+            print("TM: recovered", mgr_idx, "updating mgr failures with", self.data_mgrs[mgr_idx].failures[0])
+
 
         elif(op["cmd"] == "W"):
             # TODO: If transaction already has lock, then write to all sites
@@ -101,6 +131,7 @@ class trans_mgr:
                     at_least_one_site = True
 
             print("can_lock:", can_lock, "at_least_one_site:", at_least_one_site)
+
             if(can_lock and at_least_one_site):
                 print("TM: Transaction can and will lock at all available sites (there is at least one)")
                 for mgr_idx in range(1, 11, 1):
@@ -121,18 +152,17 @@ class trans_mgr:
         elif(op["cmd"] == "R"):
             trans = op["args"][0]
             var = op["args"][1]
-            val = op["args"][2]
             mgrs = self.data_mgrs
 
             self.trans_set[trans]["ops"].appendleft({
                 "time": self.time,
                 "trans": trans,
                 "var": var,
-                "val": val,
                 "op": "read"
             })
 
             if(not self.trans_set[trans]["ro?"]):
+                can_lock = False
                 if(not self.vars[var]["queue"]): # No transactions is queue for item
                     for mgr_idx in range(1, 11, 1):
                         if((not mgrs[mgr_idx] == "failed") and # Site up
@@ -149,8 +179,31 @@ class trans_mgr:
 
                 if(can_lock): # If locking possible, obtain read lock
                     mgrs[mgr_idx].test_lock_var(trans, var, "read", to_lock = True)
-            else: # Transaction is RO, implement correct conditions
-                pass
+            else: # Transaction is RO
+                var_idx = int(var[1:])
+                entry_time = self.trans_set[trans]["entry_time"]
+                print("TM: transaction is RO, fetching latest commit", var_idx)
+                if(var_idx%2 == 1): # The variable is not replicated
+                    mgr = self.data_mgrs[(var_idx + 1) % 10]
+                    if(mgr.mode == "failed"):
+                        # Abort transaction
+                        print("TM: fetch failed, aborting")
+                    else:
+                        print("TM: reading", mgr.read_latest_commit(var, entry_time))
+                else:
+                    at_least_one_site = False
+                    for mgr_idx in range(1, 11, 1):
+                        if(self.is_at_mgr(var, mgr_idx)):
+                            mgr = self.data_mgrs[mgr_idx]
+                            latest_commit = mgr.read_latest_commit(var, entry_time)
+                            if(self.ro_mgr_fail_check(mgr_idx, entry_time, self.time)):
+                                print("TM: reading", mgr.read_latest_commit(var, entry_time),"mgr", mgr_idx)
+                                at_least_one_site = True
+                                break
+                    if(not at_least_one_site):
+                        # abort transaction
+                        pass
+
 
 
                         
@@ -183,14 +236,16 @@ class trans_mgr:
 
 # Create operation objects from groups
 def make_operation(groups):
-    return {
+    op = {
         "cmd": groups[0],
-        "args": groups[1].split(',')
+        "args": list(map(lambda s: s.strip(), groups[1].split(',')))
     }
+    print("TM: op", op)
+    return op
 
 if __name__ == "__main__":
     # Reading transactions from file
-    trans_set_file = open("trans-sets/set-1", "r")
+    trans_set_file = open("trans-sets/set-3", "r")
     tm = trans_mgr()
 
     # Regexes for comments, operations

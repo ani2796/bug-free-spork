@@ -26,11 +26,28 @@ class data_mgr:
                 }])
         
         self.lock_table = lock_table.lock_table(self.database)
+        self.memory = {}
+        self.failures = deque()
+
+        for var in self.database:
+            self.memory[var] = deque()
     
-    def write_var(self, var, val, time):
-        # TODO: Write variable to temp storage before transaction commits
-        pass
-    
+    def write_var(self, trans, var, val, time):
+        self.memory[var].appendleft({
+            "trans": trans,
+            "op": "write",
+            "val": val,
+            "time": time
+        })
+        
+        print("DM", self.idx, "writing", var, str(self.memory[var][0]))
+
+    def read_latest_commit(self, var, time):
+        commits = self.database[var]
+        for commit in commits: # Go through commits in decreasing time order till you find latest preceding
+            if(commit["commit_time"] <= time):
+                print("DM", self.idx,  "reading", commit["value"])
+                return commit
 
     def view_database(self):
         return self.database
