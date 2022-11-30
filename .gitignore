@@ -6,3 +6,6 @@
 
 # Test output
 *.out
+
+# VS Code
+**/.vscode

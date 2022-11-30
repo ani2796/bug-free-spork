@@ -19,12 +19,15 @@ class lock_table:
         return self.locks[var]
 
     def has_lock(self, trans, var, lock):
-        if(trans in self.locks[var]["trans"] and lock == self.locks[var]["type"]):
-            return True
+        # ("lock table: locks", self.locks)
+        if(trans in self.locks[var]["trans"]):
+            if(self.locks[var]["type"] == "write"):
+                return True
+            if(self.locks[var]["type"] == "read" and lock == "read"):
+                return True
         return False
 
     def test_lock_var(self, trans, var, lock, to_lock):
-        
         # Trans exclusively holds R/W lock
         if(len(self.locks[var]["trans"]) == 1 and (trans in self.locks[var]["trans"])):
             # Upgrading lock
@@ -45,6 +48,14 @@ class lock_table:
         else:
             return False
         return True
+
+    def unlock_all_vars(self, del_trans):
+        for (var, lock) in self.locks.items():
+            if(del_trans in lock["trans"]):
+                self.locks[var] = {
+                "trans": deque(),
+                "type": None
+            }
 
     def unlock_var(self, trans, var):
         if(trans in self.locks[var]["trans"]):

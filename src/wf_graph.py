@@ -18,6 +18,18 @@ class wf_graph:
         }
         # ("add node", self.nodes)
 
+    def remove_node(self, del_node):
+        if(del_node in self.nodes):
+            self.nodes.pop(del_node)
+
+        # ("wf graph: removing", del_node, "result", self.nodes)
+        
+        for (node, curr) in self.nodes.items():
+            # ("wf graph: self.nodes", self.nodes)
+            # ("wf graph: node", node)
+            if(del_node in self.nodes[node]["adj_list"]):
+                self.nodes[node]["adj_list"].remove(del_node)
+        # ("wf graph: removed", node, "graph", self.nodes)
 
     def reset_graph(self):
         # ("reset graph")
@@ -27,7 +39,8 @@ class wf_graph:
             self.nodes[node]["cycle?"] = False
 
     def add_edge(self, src, dest):
-        self.nodes[src]["adj_list"].append(dest)
+        if(not dest in self.nodes[src]["adj_list"]):
+            self.nodes[src]["adj_list"].append(dest)
     
 
     def cycle_check(self):
@@ -52,9 +65,9 @@ class wf_graph:
             if(node == cycle_start):
                 break
         
-        print("gc: stack =", stack)
-        print("gc: cycle start =", cycle_start, ", end at curr")
-        print("gc: cycle nodes =", cycle_nodes)
+        # ("gc: stack =", stack)
+        # ("gc: cycle start =", cycle_start, ", end at curr")
+        # ("gc: cycle nodes =", cycle_nodes)
         return cycle_nodes
 
     def connected_cycle_check(self, start):
