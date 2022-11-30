@@ -11,14 +11,16 @@ def make_operation(groups):
     # ("TM: op", op)
     return op
 
-def parse_input(trans_set_file):
+def parse_input(in_path, out_path):
     # New transaction manager
-    tm = trans_mgr.trans_mgr()
+    out_file = open(out_path, "w")
+    tm = trans_mgr.trans_mgr(out_file)
 
     # Regexes for comments, operations
     comment_regex = re.compile(r'( )*#(.)*')
     operation_regex = re.compile(r'(.+)\((.*)\)')
 
+    trans_set_file = open(in_path, "r")
     # Getting all lines
     lines = trans_set_file.read().splitlines()
 
@@ -34,6 +36,7 @@ def parse_input(trans_set_file):
 if __name__ == "__main__":
     # Reading transactions from file
     trans_set_path = "trans-sets"
+    out_set_path = "trans-sets-out"
 
     if(not os.path.isdir(trans_set_path)):
         print("No dir called", trans_set_path)
@@ -42,9 +45,10 @@ if __name__ == "__main__":
     # get all file names in the dir, execute sim for each file
     files = os.listdir(trans_set_path)
     for file in files:
-        file_path = trans_set_path + "/" + file
-        print("parsing input for", file)
-        parse_input(open(file_path, "r"))
+        in_file_path = trans_set_path + "/" + file
+        out_file_path = out_set_path + "/" + file + "-out"
+        print("parsing input for", in_file_path, out_file_path)
+        parse_input(in_file_path, out_file_path)
         
 
 

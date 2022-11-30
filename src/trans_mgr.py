@@ -4,13 +4,14 @@ import wf_graph
 from collections import deque
 
 class trans_mgr:
-    def __init__(self):
+    def __init__(self, out_file):
         print("TM: Creating...")
         self.time = 0
         self.trans_set = {}
         self.var_qs = {}
         self.possible_cycle = False
         self.attempt_qd = False
+        self.out = out_file
 
         self.data_mgrs = [None] * 11        
         for mgr_idx in range(1, 11, 1):
@@ -280,6 +281,14 @@ class trans_mgr:
                 valid_mgrs.append(mgr_idx)
         return valid_mgrs
 
+    def file_dump(self):
+        for mgr_idx in range(1, 11, 1):
+            mgr_db = self.data_mgrs[mgr_idx].view_database()
+            self.out.write("site " + str(mgr_idx) + " ")
+            for var in mgr_db:
+                self.out.write(var + ": " + str(self.data_mgrs[mgr_idx].read_latest_commit(var, self.time)["value"]) + " ")
+            self.out.write("\n")
+
     def operate(self, op, trial = False):
         print("TM: processing operation", op)
         self.time += 1
@@ -444,3 +453,6 @@ class trans_mgr:
                     if(self.is_at_mgr(var, mgr_idx)):
                         print(var, ":", mgr.read_latest_commit(var, self.time), end=" ")
                 print()
+
+            self.file_dump()
+            self.out.close()
