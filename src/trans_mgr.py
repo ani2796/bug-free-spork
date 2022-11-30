@@ -1,4 +1,4 @@
-import re
+import copy
 import data_mgr
 import wf_graph
 from collections import deque
@@ -151,22 +151,24 @@ class trans_mgr:
             print("var", var)
             if(len(q) == 0):
                 continue
-            else:
-                for item in reversed(q):
-                    print("item", item)
-                    op = {
-                        "cmd": "W" if(item["lock"] == "write") else "R",
-                        "args": [item["trans"], var]
-                    }
-                    if(item["lock"] == "write"):
-                        op["args"].append(item["val"])
 
-                    print("queued op =", op)
-                    if(self.operate(op, trial = True)):
-                        self.operate(op)
-                        self.var_qs[var].pop()
-                    else:
-                        break
+            print("tmq", q)
+            temp_q = copy.copy(q)
+            for item in reversed(temp_q):
+                print("item", item)
+                op = {
+                    "cmd": "W" if(item["lock"] == "write") else "R",
+                    "args": [item["trans"], var]
+                }
+                if(item["lock"] == "write"):
+                    op["args"].append(item["val"])
+
+                print("queued op =", op)
+                if(self.operate(op, trial = True)):
+                    self.operate(op)
+                    self.var_qs[var].pop()
+                else:
+                    break
                     
     def abort_trans(self, trans):
         print("TM: aborting", trans)
@@ -286,7 +288,7 @@ class trans_mgr:
         if(self.possible_cycle and not trial):
             # ("TM: cycle possible")
             (transs, is_cycle) = self.wf_graph.cycle_check()
-            # ("TM: is there?", is_cycle, "transactions", str(transs))
+            print("TM: is there?", is_cycle, "transactions", str(transs))
             if(is_cycle):
                 # Abort youngest transaction
                 transs_ages = list(map(lambda t: (t, self.get_age(t)), transs))
@@ -322,6 +324,7 @@ class trans_mgr:
             print("TM: recovered", mgr_idx, "updating mgr failures with", self.data_mgrs[mgr_idx].failures[0])
 
         elif(op["cmd"] == "W"):
+            print("TM: write op", op)
             trans = op["args"][0]
             var = op["args"][1]
             val = op["args"][2]
@@ -388,7 +391,7 @@ class trans_mgr:
                     if(prev_lock["type"] == "write"):
                         print(trans, "has W lock, must read", var, "from memory, value =", self.data_mgrs[mgr_with_lock].view_mem_val(trans, var))
                     else:
-                        print(trans, "has R lock, must read", var, "from db, value =", self.data_mgrs[mgr_with_lock].read_latest_commit(trans, var))
+                        print(trans, "has R lock, must read", var, "from db, value =", self.data_mgrs[mgr_with_lock].read_latest_commit(var, self.time))
                     self.add_op(trans, var, "read", [mgr_with_lock])
                     return
                 
@@ -404,12 +407,13 @@ class trans_mgr:
                             break
                 
                 if(new_lock): # Obtained lock at new_lock
+                    if(trial):
+                        print("TM: R locking", var, "at", new_lock)
+                        return True
+                    self.data_mgrs[new_lock].test_lock_var(trans, var, "read", True)
+                    val = self.data_mgrs[new_lock].read_latest_commit(var, self.time)
                     print("TM: R locking", var, "at", new_lock, "reading value", val)
                     self.add_op(trans, var, "read", [new_lock])
-                    if(trial):
-                        return True
-                    self.data_mgrs[mgr_idx].test_lock_var(trans, var, "read", True)
-                    val = self.data_mgrs[mgr_idx].read_latest_commit(var, self.time)
                 else:
                     print("TM: cannot R lock", var, "anywhere, adding to queue, wf graph")
                     if(trial):
@@ -427,6 +431,10 @@ class trans_mgr:
                 print("no need any validation for RO transaction", trans)
             else:
                 print("validating", trans, self.commit_validation(trans))
+                if(self.commit_validation(trans)):
+                    for mgr_idx in range(1, 11, 1):
+                        mgr = self.data_mgrs[mgr_idx]
+                        mgr.commit(trans, self.time)
 
         elif(op["cmd"] == "dump"):
             for mgr_idx in range(1, 11, 1):
@@ -436,35 +444,3 @@ class trans_mgr:
                     if(self.is_at_mgr(var, mgr_idx)):
                         print(var, ":", mgr.read_latest_commit(var, self.time), end=" ")
                 print()
-                        
-
-
-# Create operation objects from groups
-def make_operation(groups):
-    op = {
-        "cmd": groups[0],
-        "args": list(map(lambda s: s.strip(), groups[1].split(',')))
-    }
-    # ("TM: op", op)
-    return op
-
-if __name__ == "__main__":
-    # Reading transactions from file
-    trans_set_file = open("trans-sets/set-1", "r")
-    tm = trans_mgr()
-
-    # Regexes for comments, operations
-    comment_regex = re.compile(r'( )*#(.)*')
-    operation_regex = re.compile(r'(.+)\((.*)\)')
-
-    # Getting all lines
-    lines = trans_set_file.read().splitlines()
-
-    # Grouping up
-    for line in lines:
-        if(comment_regex.match(line)):
-            continue
-        elif(groups := operation_regex.match(line).groups()):
-            tm.operate(make_operation(groups))
-
-    

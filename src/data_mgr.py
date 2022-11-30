@@ -70,6 +70,19 @@ class data_mgr:
                 print("DM", self.idx,  "reading", commit["value"])
                 return commit
 
+    def commit(self, trans, time):
+        # ("DM", self.idx, "committing transaction", trans)
+        if(trans not in self.memory):
+            # ("Nothing to commit")
+            return
+        
+        for var in self.memory[trans]:
+            # ("variable", var, "in transaction")
+            self.database[var].appendleft({
+                "commit_time": time,
+                "value": self.memory[trans][var]["val"]
+            })
+
     def view_mem_val(self, trans, var):
         if(trans not in self.memory):
             print("mgr", self.idx, "trans", trans, "not in memory")
