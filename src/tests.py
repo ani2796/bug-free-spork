@@ -8,7 +8,9 @@ def test_always_passes():
 
 def test_shared_read_locks():
     # Initiating TM
-    tm = trans_mgr.trans_mgr()
+    out_path = "trans-sets-out/pytest.out"
+    out_file = open(out_path, "w")
+    tm = trans_mgr.trans_mgr(out_file)
     data_mgr = tm.data_mgrs[1]
     lock_table = data_mgr.view_lock_table()
 
@@ -24,7 +26,9 @@ def test_shared_read_locks():
 
 def test_upgrade_lock():
     # Initiating TM
-    tm = trans_mgr.trans_mgr()
+    out_path = "trans-sets-out/pytest.out"
+    out_file = open(out_path, "w")
+    tm = trans_mgr.trans_mgr(out_file)
     data_mgr = tm.data_mgrs[1]
     lock_table = data_mgr.view_lock_table()
 
@@ -41,7 +45,9 @@ def test_upgrade_lock():
 
 def test_exclusive_write_locks():
     # Initiating TM
-    tm = trans_mgr.trans_mgr()
+    out_path = "trans-sets-out/pytest.out"
+    out_file = open(out_path, "w")
+    tm = trans_mgr.trans_mgr(out_file)
     data_mgr = tm.data_mgrs[1]
 
     data_mgr.test_lock_var("T1", "x2", "read", to_lock = True)
@@ -54,7 +60,9 @@ def test_exclusive_write_locks():
 
 
 def test_wf():
-    tm = trans_mgr.trans_mgr()
+    out_path = "trans-sets-out/pytest.out"
+    out_file = open(out_path, "w")
+    tm = trans_mgr.trans_mgr(out_file)
     graph = tm.get_wf_graph()
 
     # Connected graph with a cycle
@@ -71,7 +79,9 @@ def test_wf():
 
     assert graph.cycle_check() == (deque(["T2", "T4"]), True)
 
-    tm = trans_mgr.trans_mgr()
+    out_path = "trans-sets-out/pytest.out"
+    out_file = open(out_path, "w")
+    tm = trans_mgr.trans_mgr(out_file)
     graph = tm.get_wf_graph()
 
     # Connected graph without a cycle
