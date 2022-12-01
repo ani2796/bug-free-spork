@@ -48,7 +48,7 @@ if __name__ == "__main__":
         print("No dir called", trans_set_path)
         exit(0)
 
-    single_file = False
+    single_file = True
     # get all file names in the dir, execute sim for each file
     files = os.listdir(trans_set_path)
 
@@ -56,5 +56,5 @@ if __name__ == "__main__":
         for file in files:
             execute_single(file)
     else:
-        file = "set-6"
+        file = "set-20"
         execute_single(file)

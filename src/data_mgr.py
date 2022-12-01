@@ -51,6 +51,8 @@ class data_mgr:
     def recover(self, time):
         self.failures[0]["end"] = time
         self.mode = "recovery"
+        self.init_commited_after_recovery()
+        # ("DM", self.idx, "committed after recovery", self.commited_after_recovery)
 
     def write_var(self, trans, var, val, time):
         if(trans not in self.memory):
