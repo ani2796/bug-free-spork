@@ -5,7 +5,7 @@ from collections import deque
 
 class trans_mgr:
     def __init__(self, out_file):
-        print("TM: Creating...")
+        # Initializing transaction manager
         self.time = 0
         self.trans_set = {}
         self.var_qs = {}
@@ -21,25 +21,19 @@ class trans_mgr:
 
         self.wf_graph = wf_graph.wf_graph()
 
+    # Destructor (closing output file)
     def __del__(self):
         self.out.close()
 
-    def get_wf_graph(self):
-        return self.wf_graph
-
+    # Tells if `var` is at `mgr_idx`
     def is_at_mgr(self, var, mgr_idx):
-        # ("var + \"" + var + "\"")
         var_idx = int(var[1:]) 
-        
         # Even variables all sites, odd variables one site = 1 + (idx % 10)
-        # ("TM: var_idx", str(1 + (var_idx % 10), "mgr_idx", mgr_idx)
         if((var_idx % 2 == 0) or ((1 + (var_idx % 10)) == mgr_idx)):
             return True
         return False
 
-    def print_trans(self):
-        print("TM: Printing transaction set", self.trans_set)
-
+    # Return all sites in "normal" or "recovery" mode
     def get_all_up_sites(self):
         up_sites = []
         for mgr_idx in range(1, 11, 1):
@@ -48,28 +42,27 @@ class trans_mgr:
                 up_sites.append(mgr.idx)
         return up_sites
 
+    # Record `trans` writing `var` with `val` to all up sites
     def write(self, trans, var, val):
-        mgrs = self.data_mgrs
         self.out.write(trans + " writes " + var + " = " + str(val) + " to [")
         for mgr_idx in range(1, 11, 1):
-            if(self.is_at_mgr(var, mgr_idx) and not mgrs[mgr_idx].mode == "failed"):
-                mgrs[mgr_idx].write_var(trans, var, val, self.time)
+            mgr = self.data_mgrs[mgr_idx]
+            if(self.is_at_mgr(var, mgr_idx) and not mgr.mode == "failed"):
+                mgr.write_var(trans, var, val, self.time)
                 self.out.write(" " + str(mgr_idx))
         self.out.write(" ]\n")
 
+    # Check if `mgr_idx` has failed from latest commit of `var` till `entry_time`
     def ro_mgr_fail_check(self, mgr_idx, entry_time, var):
         mgr = self.data_mgrs[mgr_idx]
         last_commit_time = mgr.read_latest_commit(var, entry_time)["commit_time"]
-        # ("TM: last commit time =", last_commit_time)
-
         for failure in mgr.failures:
-            # ("TM:", mgr_idx, "failure", str(failure))
-            if(failure["start"] > last_commit_time and failure["start"] < entry_time):
-                return False
-            if(("end" in failure) and (failure["end"] > last_commit_time and failure["end"] < entry_time)):
+            if( (failure["start"] > last_commit_time and failure["start"] < entry_time) or
+                (("end" in failure) and (failure["end"] > last_commit_time and failure["end"] < entry_time))):
                 return False
         return True
 
+    # Add `trans` to `var` queue for a `lock` (with `val` if write)
     def add_to_q(self, trans, var, lock, val = None):
         self.var_qs[var].appendleft({
             "trans": trans,
@@ -79,6 +72,7 @@ class trans_mgr:
         if(val and lock == "write"):
             self.var_qs[var][0]["val"] = val
 
+    # Record `op` on `var` by `trans` recording changes at `mgrs` (with `val` if write)
     def add_op(self, trans, var, op, mgrs, val = None):
         self.trans_set[trans]["ops"].appendleft({
             "time": self.time,
@@ -90,13 +84,12 @@ class trans_mgr:
         if(op == "write"):
             self.trans_set[trans]["ops"][0]["val"] = val
 
+
+    
     def add_to_wf_graph(self, var):
         new_item = self.var_qs[var][0]
         trans = new_item["trans"]
         graph_change = False
-
-        print("TM:", var, "queue =", self.var_qs[var])
-        print("TM: attempting to add", new_item, "to wf graph")
 
         if(new_item["lock"] == "write"):
             for item in self.var_qs[var]:
@@ -194,8 +187,7 @@ class trans_mgr:
         self.trans_set[trans]["aborted"] = True
         self.out.write("abort " + str(trans) + "\n")
         self.wf_graph.remove_node(trans)
-        print("TM: new wf graph", self.get_wf_graph())
-                
+        print("TM: new wf graph", self.wf_graph)
         # Remove transaction from all queues if present
         self.remove_from_qs(trans)
 
