@@ -12,7 +12,8 @@ class data_mgr:
 
         # Initializing variables at site
         self.database = {}
-        self.commited_after_recovery = deque()
+        self.commited_after_recovery = []
+        self.init_commited_after_recovery()
         for var_idx in range(1, 21, 1):
             var = "x"+str(var_idx)
             if(var_idx%2 == 0):
@@ -63,6 +64,7 @@ class data_mgr:
 
         print("DM", self.idx, "writing", trans, var, str(self.memory[trans][var]))
 
+
     def read_latest_commit(self, var, time):
         commits = self.database[var]
         for commit in commits: # Go through commits in decreasing time order till you find latest preceding
@@ -82,6 +84,11 @@ class data_mgr:
                 "commit_time": time,
                 "value": self.memory[trans][var]["val"]
             })
+
+            if(self.mode == "recovery" and var not in self.commited_after_recovery):
+                self.commited_after_recovery.append(var)
+                if(len(self.commited_after_recovery) == len(self.database)):
+                    self.mode == "normal"
 
     def view_mem_val(self, trans, var):
         if(trans not in self.memory):

@@ -39,7 +39,7 @@ class wf_graph:
             self.nodes[node]["cycle?"] = False
 
     def add_edge(self, src, dest):
-        if(not dest in self.nodes[src]["adj_list"]):
+        if((not dest in self.nodes[src]["adj_list"]) and (not src == dest)):
             self.nodes[src]["adj_list"].append(dest)
     
 

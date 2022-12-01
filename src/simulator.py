@@ -31,6 +31,11 @@ def parse_input(in_path, out_path):
         elif(groups := operation_regex.match(line).groups()):
             tm.operate(make_operation(groups))
 
+def execute_single(file):
+    in_file_path = trans_set_path + "/" + file
+    out_file_path = out_set_path + "/" + file + "-out"
+    print("parsing input for", in_file_path, out_file_path)
+    parse_input(in_file_path, out_file_path)
 
 
 if __name__ == "__main__":
@@ -42,16 +47,13 @@ if __name__ == "__main__":
         print("No dir called", trans_set_path)
         exit(0)
 
+    single_file = False
     # get all file names in the dir, execute sim for each file
     files = os.listdir(trans_set_path)
-    for file in files:
-        in_file_path = trans_set_path + "/" + file
-        out_file_path = out_set_path + "/" + file + "-out"
-        print("parsing input for", in_file_path, out_file_path)
-        parse_input(in_file_path, out_file_path)
-        
 
-
-    
-
-    
+    if(not single_file):
+        for file in files:
+            execute_single(file)
+    else:
+        file = "set-6"
+        execute_single(file)
