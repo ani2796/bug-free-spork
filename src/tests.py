@@ -63,7 +63,7 @@ def test_wf():
     out_path = "trans-sets-out/pytest.out"
     out_file = open(out_path, "w")
     tm = trans_mgr.trans_mgr(out_file)
-    graph = tm.get_wf_graph()
+    graph = tm.wf_graph
 
     # Connected graph with a cycle
     graph.add_node("T1")
@@ -82,7 +82,7 @@ def test_wf():
     out_path = "trans-sets-out/pytest.out"
     out_file = open(out_path, "w")
     tm = trans_mgr.trans_mgr(out_file)
-    graph = tm.get_wf_graph()
+    graph = tm.wf_graph
 
     # Connected graph without a cycle
     graph.add_node("T1")

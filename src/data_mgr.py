@@ -6,7 +6,6 @@ from collections import deque
 
 class data_mgr:
     def __init__(self, idx) -> None:
-        # TODO: Figure out enumerations in Python, use for node modes
         self.mode = "normal"
         self.idx = idx
 
@@ -51,6 +50,8 @@ class data_mgr:
     def recover(self, time):
         self.failures[0]["end"] = time
         self.mode = "recovery"
+        self.init_commited_after_recovery()
+        # ("DM", self.idx, "committed after recovery", self.commited_after_recovery)
 
     def write_var(self, trans, var, val, time):
         if(trans not in self.memory):
@@ -62,14 +63,14 @@ class data_mgr:
             "time": time
         }
 
-        print("DM", self.idx, "writing", trans, var, str(self.memory[trans][var]))
+        # (("DM", self.idx, "writing", trans, var, str(self.memory[trans][var]))
 
 
     def read_latest_commit(self, var, time):
         commits = self.database[var]
         for commit in commits: # Go through commits in decreasing time order till you find latest preceding
             if(commit["commit_time"] <= time):
-                print("DM", self.idx,  "reading", commit["value"])
+                # (("DM", self.idx,  "reading", commit["value"])
                 return commit
 
     def commit(self, trans, time):
@@ -91,18 +92,18 @@ class data_mgr:
                     self.mode == "normal"
 
     def view_mem_val(self, trans, var):
-        if(trans not in self.memory):
-            print("mgr", self.idx, "trans", trans, "not in memory")
+        if(trans in self.memory):
+            if(var in self.memory[trans]):
+                return self.memory[trans][var]
+            else:
+                # (("mgr", self.idx, "var", var, "not in trans", trans, "memory")
+                pass
         else:
-            if(var not in self.memory[trans]):
-                print("mgr", self.idx, "var", var, "not in trans", trans, "memory")
-            return self.memory[trans][var]
+            # (("mgr", self.idx, "trans", trans, "not in memory")
+            pass
 
     def view_database(self):
         return self.database
-
-    def view_lock_table(self):
-        return self.lock_table
     
     def view_lock(self, var):
         return self.lock_table.view_lock(var)
@@ -110,8 +111,8 @@ class data_mgr:
     def has_lock(self, trans, var, lock):
         return self.lock_table.has_lock(trans, var, lock)
 
-    def test_lock_var(self, trans, var, lock, to_lock = False):
-        result = self.lock_table.test_lock_var(trans, var, lock, to_lock)
+    def test_lock_var(self, trans, var, lock, to_lock = False, empty_q = True):
+        result = self.lock_table.test_lock_var(trans, var, lock, to_lock, empty_q)
         return result
 
     def release_all_locks(self, trans):
