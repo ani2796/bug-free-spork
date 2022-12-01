@@ -1,8 +1,7 @@
-# Author: Anirudh Sriram
 # Distributed Replicated DB with Concurrency and Recovery
 
 # The project is named `bug-free-spork` because that's the random name
-# GitHub suggested, and I'm nothing if not a risk taker
+# GitHub suggested, and I'm nothing if not a risk taker.
 
 # The project consists of 5 modules: 
 # 1. The transaction manager
@@ -41,6 +40,8 @@
 # The waits-for graph is a non-looping graph that adds transactions as nodes.
 # It stores edges as an adjacency list.
 # Cycles are checked using a stack-based DFS traversal.
+
+
 
 import trans_mgr
 import re
