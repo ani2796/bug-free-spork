@@ -28,7 +28,8 @@ def parse_input(in_path, out_path):
     for line in lines:
         if(comment_regex.match(line)):
             continue
-        elif(groups := operation_regex.match(line).groups()):
+        elif(operation_regex.match(line).groups()):
+            groups = operation_regex.match(line).groups()
             tm.operate(make_operation(groups))
 
 def execute_single(file):
