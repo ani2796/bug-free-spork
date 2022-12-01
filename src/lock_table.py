@@ -27,13 +27,21 @@ class lock_table:
                 return True
         return False
 
-    def test_lock_var(self, trans, var, lock, to_lock):
+    def test_lock_var(self, trans, var, lock, to_lock, empty_q = True):
         # Trans exclusively holds R/W lock
         if(len(self.locks[var]["trans"]) == 1 and (trans in self.locks[var]["trans"])):
             # Upgrading lock
             # "Variable already holds lock (might upgrade)"
-            if(lock == "write" and to_lock):
-                self.locks[var]["type"] = "write"
+            if( (self.locks[var]["type"] == "read" and lock == "read") or 
+                (self.locks[var]["type"] == "write" and lock == "read") or
+                (self.locks[var]["type"] == "write" and lock == "write")):
+                return True
+            elif(self.locks[var]["type"] == "read" and lock == "write"):
+                if(not empty_q): # If transactions waiting ahead, cannot upgrade lock
+                    return False
+                if(to_lock): # Only lock if `to_lock` is True
+                    self.locks[var]["type"] == "write"
+                return True
         # No existing lock
         elif((not self.locks[var]["trans"])):
             # "No transactions hold locks on variable"

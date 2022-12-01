@@ -36,7 +36,7 @@ class trans_mgr:
 
     # Return all sites in "normal" or "recovery" mode
     def get_all_up_sites(self):
-        print("fetching all up sites")
+        # ("fetching all up sites")
         up_sites = []
         for mgr_idx in range(1, 11, 1):
             mgr = self.data_mgrs[mgr_idx]
@@ -46,7 +46,7 @@ class trans_mgr:
 
     # Record `trans` writing `var` with `val` to all up sites
     def write(self, trans, var, val):
-        print("writing", trans, var, val)
+        # ("writing", trans, var, val)
         self.out.write(trans + " writes " + var + " = " + str(val) + " to [")
         for mgr_idx in range(1, 11, 1):
             mgr = self.data_mgrs[mgr_idx]
@@ -57,7 +57,7 @@ class trans_mgr:
 
     # Add `trans` to `var` queue for a `lock` (with `val` if write)
     def add_to_q(self, trans, var, lock, val = None):
-        print("adding to queue", trans, var, lock, val)
+        # ("adding to queue", trans, var, lock, val)
         self.var_qs[var].appendleft({
             "trans": trans,
             "lock": lock,
@@ -68,7 +68,7 @@ class trans_mgr:
 
     # Record `op` on `var` by `trans` recording changes at `mgrs` (with `val` if write)
     def add_op(self, trans, var, op, mgrs, val = None):
-        print("adding op", trans, var, op, mgrs, val)
+        # ("adding op", trans, var, op, mgrs, val)
         self.trans_set[trans]["ops"].appendleft({
             "time": self.time,
             "var": var,
@@ -89,7 +89,7 @@ class trans_mgr:
         for item in self.var_qs[var]:
             if( (new_item["lock"] == "write" and (not item["lock"] == "RO")) or 
                 (new_item["lock"] == "read" and item["lock"] == "write")):
-                print("adding edge from", trans, "to", item["trans"])
+                # ("adding edge from", trans, "to", item["trans"])
                 self.wf_graph.add_edge(trans, item["trans"])
 
         # Add conflicting transactions currently holding the lock
@@ -101,24 +101,24 @@ class trans_mgr:
             if(((lock["type"] and new_item["lock"] == "write") or 
                 (lock["type"] == "write" and new_item["lock"] == "read"))):
                 for mgr_trans in lock["trans"]:
-                    print("adding edge from", trans, "to", mgr_trans)
+                    # ("adding edge from", trans, "to", mgr_trans)
                     self.wf_graph.add_edge(trans, mgr_trans)
 
     # Return age of `trans` wrt to current time
     def get_age(self, trans):
-        print("getting age")
+        # ("getting age")
         if(trans in self.trans_set):
             return self.time - self.trans_set[trans]["entry_time"]
         return None
 
     # Ensure that sites at which ops happened haven't failed since
     def commit_validation(self, trans):
-        print("performing commit validation", trans)
+        # ("performing commit validation", trans)
         ops = self.trans_set[trans]["ops"]
-        print("ops", ops)
+        # ("ops", ops)
         for op in ops:
             for mgr_idx in op["mgrs"]:
-                print("mgr", mgr_idx, "failures", self.data_mgrs[mgr_idx].failures)
+                # ("mgr", mgr_idx, "failures", self.data_mgrs[mgr_idx].failures)
                 for fail in self.data_mgrs[mgr_idx].failures:
                     if(fail["start"] > op["time"]):
                         return False
@@ -126,13 +126,13 @@ class trans_mgr:
 
     # Attempt queued operations
     def attempt_qd_ops(self):
-        print("attempting queued ops")
+        # ("attempting queued ops")
         for (var, q) in self.var_qs.items():
             if(len(q) == 0):
                 continue
             temp_q = copy.copy(q)
             for item in reversed(temp_q):
-                print("attempting item", item)
+                # ("attempting item", item)
                 op = {
                     "cmd": "W" if(item["lock"] == "write") else "R",
                     "args": [item["trans"], var],
@@ -141,7 +141,7 @@ class trans_mgr:
                 if(item["lock"] == "write"):
                     op["args"].append(item["val"])
 
-                print("can it happen?", self.operate(op, trial = True))
+                # ("can it happen?", self.operate(op, trial = True))
                 if(not self.operate(op, trial = True)):
                     break
                 self.operate(op)
@@ -149,7 +149,7 @@ class trans_mgr:
                     
     # Remove `trans` from all var waiting queues
     def remove_from_qs(self, trans):
-        print("removing", trans, "from queues")
+        # ("removing", trans, "from queues")
         for (var, q) in self.var_qs.items():
             del_idx = -1
             for (idx, item) in enumerate(q):
@@ -157,12 +157,12 @@ class trans_mgr:
                     del_idx = idx
                     break
             if(not del_idx == -1):
-                print("deleting", trans, "from", var, "queue")
+                # ("deleting", trans, "from", var, "queue")
                 del self.var_qs[var][del_idx]
   
     # Abort transaction, clean up its remnants
     def abort_trans(self, trans):
-        print("aborting", trans)
+        # ("aborting", trans)
         self.trans_set[trans]["aborted"] = True
         self.out.write("abort " + str(trans) + "\n")
         
@@ -195,6 +195,7 @@ class trans_mgr:
             return True
         return False
 
+    # Ensure `trans` can attempt `var` access without queue conflicts
     def q_check(self, trans, var):
         return (len(self.var_qs[var]) == 0 or self.trans_head_of_var_q(trans, var))
 
@@ -215,30 +216,36 @@ class trans_mgr:
 
         # Queue must be empty or `trans` must be at head of queue
         can_lock_all = True
+
         for mgr_idx in range(1, 11, 1):
             mgr = self.data_mgrs[mgr_idx]
-            if(not self.is_at_mgr(var, mgr_idx)):
+            if(not self.is_at_mgr(var, mgr_idx)): # Only check sites with the var
                 continue
-            if( (mgr.mode == "normal" and self.q_check(trans, var)) or 
-                (mgr.mode == "recovery" and ((var not in mgr.commited_after_recovery or self.q_check(trans, var))))):
-                can_lock_all = can_lock_all and mgr.test_lock_var(trans, var, "write", to_lock = False)
+            # For normal sites, queue check needed
+            # If site is recovering, might be possible to bypass queue check if `var` hasn't been committed yet
+            # ("var q:", var, self.var_qs[var])
+            # if( (mgr.mode == "normal" and self.q_check(trans, var)) or 
+            #     (mgr.mode == "recovery" and ((var not in mgr.commited_after_recovery or self.q_check(trans, var))))):
+            
+            # ("Checking at site", mgr_idx, "mode", mgr.mode, "queue check", self.q_check(trans, var))
+            can_lock_all = can_lock_all and mgr.test_lock_var(trans, var, "write", to_lock = False, empty_q = self.q_check(trans, var))
         
         return (can_lock_all, True)
 
     # `trans` locks `var` at all available sites
     def w_lock_all_available_sites(self, trans, var):
-        print("locking at all available sites")
+        # ("locking at all available sites")
         mgrs = self.data_mgrs
 
         for mgr_idx in range(1, 11, 1):
             if((not mgrs[mgr_idx].mode == "failed") and # Site up
                 self.is_at_mgr(var, mgr_idx)): # Site contains variable
-                print("locking at", mgr_idx)
+                # ("locking at", mgr_idx)
                 self.data_mgrs[mgr_idx].test_lock_var(trans, var, "write", to_lock = True) # Lock var
     
     # Check if `mgr_idx` has failed from latest commit of `var` till `entry_time`
     def ro_mgr_fail_check(self, mgr_idx, entry_time, var):
-        print("read only mgr fail check", mgr_idx, entry_time, var)
+        # ("read only mgr fail check", mgr_idx, entry_time, var)
         mgr = self.data_mgrs[mgr_idx]
         last_commit_time = mgr.read_latest_commit(var, entry_time)["commit_time"]
         for failure in mgr.failures:
@@ -258,7 +265,7 @@ class trans_mgr:
     # Processing RO trans `trans` request for `var`
     # On "trials", don't change anything, just see if possible
     def ro_transactions(self, trans, var, trial = False):
-        print("transaction is RO, fetching latest commit of", var)
+        # ("transaction is RO, fetching latest commit of", var)
         var_idx = int(var[1:])
         entry_time = self.trans_set[trans]["entry_time"]
 
@@ -279,7 +286,7 @@ class trans_mgr:
             valid_mgrs = self.get_valid_ro_managers(var, entry_time)
             
             if(valid_mgrs):
-                print("RO", trans, "has at least one valid site to read from", str(valid_mgrs))
+                # ("RO", trans, "has at least one valid site to read from", str(valid_mgrs))
                 mgr_to_read_from = None
                 for mgr_idx in valid_mgrs:
                     mgr = self.data_mgrs[mgr_idx]
@@ -288,7 +295,7 @@ class trans_mgr:
                         break
 
                 if(mgr_to_read_from):
-                    print("RO", trans, "can read", var, "from mgr", mgr_idx, "value = ", self.data_mgrs[mgr_idx].read_latest_commit(var, entry_time))
+                    # ("RO", trans, "can read", var, "from mgr", mgr_idx, "value = ", self.data_mgrs[mgr_idx].read_latest_commit(var, entry_time))
                     if(trial):
                         return True
                     val = self.data_mgrs[mgr_to_read_from].read_latest_commit(var, entry_time)
@@ -314,19 +321,19 @@ class trans_mgr:
             self.out.write("\n")
 
     def operate(self, op, trial = False):
-        print("\nTM: processing operation", op)
+        # ("\nprocessing operation", op)
         self.time += 1
 
         # Possible cycle from previous operation
         if(self.possible_cycle and not trial):
-            print("TM: cycle possible")
+            # ("cycle possible")
             (transs, is_cycle) = self.wf_graph.cycle_check()
-            print("TM: is there?", is_cycle, "transactions", str(transs))
+            # ("is there?", is_cycle, "transactions", str(transs))
             if(is_cycle):
                 # Abort youngest transaction
                 transs_ages = list(map(lambda t: (t, self.get_age(t)), transs))
                 youngest_trans = min(transs_ages, key = lambda t: t[1])
-                print("youngest", youngest_trans)
+                # ("youngest", youngest_trans)
                 self.abort_trans(youngest_trans[0])
             self.possible_cycle = False
 
@@ -342,13 +349,13 @@ class trans_mgr:
                 "aborted": False
             }
             self.wf_graph.add_node(new_trans)
-            print("new transaction", self.trans_set[new_trans])
+            # ("new transaction", self.trans_set[new_trans])
 
         # Simulating site failure
         elif(op["cmd"] == "fail"):
             mgr_idx = int(op["args"][0])
             self.data_mgrs[mgr_idx].fail(self.time)
-            print("failed", mgr_idx, "updating mgr failures with start time", self.data_mgrs[mgr_idx].failures[0])
+            # ("failed", mgr_idx, "updating mgr failures with start time", self.data_mgrs[mgr_idx].failures[0])
 
         # Simulating site recovery
         elif(op["cmd"] == "recover"):
@@ -360,7 +367,7 @@ class trans_mgr:
 
         # Incoming transaction write
         elif(op["cmd"] == "W"):
-            print("TM: write op", op)
+            # ("TM: write op", op)
             trans = op["args"][0]
             var = op["args"][1]
             val = op["args"][2]
@@ -369,16 +376,16 @@ class trans_mgr:
 
             # Even if a single site has recorded the write lock, we can assume all site have also
             if(has_lock):
-                print("transaction already has W lock")
+                # ("transaction already has W lock")
                 self.add_op(trans, var, "write", self.get_all_up_sites(), val)
                 self.write(trans, var, val)
                 return
             
             (can_lock_all, at_least_one) = self.can_lock_all_and_at_least_one(trans, var)
-            print("can_lock_all =", can_lock_all, "at_least_one =", at_least_one)
+            # ("can_lock_all =", can_lock_all, "at_least_one =", at_least_one)
 
             if(can_lock_all and at_least_one):
-                print(trans, ": write", val, "to", var)
+                # (trans, ": write", val, "to", var)
                 if(trial):
                     return True
                 self.w_lock_all_available_sites(trans, var)
@@ -388,23 +395,23 @@ class trans_mgr:
                 if(trial):
                     return False
                 if(not at_least_one): # No sites up
-                    print("Add to queue, wf graph")
+                    # ("Add to queue, wf graph")
                     self.out.write(trans + " cannot write " + var + " = " + val + " because no sites up, so waiting\n")
                 elif(not can_lock_all): # Conflicting lock
-                    print("Conflicting lock")
+                    # ("Conflicting lock")
                     self.out.write(trans + " cannot write " + var + " = " + val + " because of conflicting lock, so waiting\n")
                     
                 self.add_to_q(trans, var, "write", val)
                 self.add_to_wf_graph(var)
                 self.possible_cycle = True
 
+        # Incoming transaction read
         elif(op["cmd"] == "R"):
             trans = op["args"][0]
             var = op["args"][1]
             var_idx = int(var[1:])
 
-            if(self.trans_set[trans]["ro?"]):
-                # Transaction is RO
+            if(self.trans_set[trans]["ro?"]): # Transaction is RO
                 self.ro_transactions(trans, var, trial)
 
             else: # Transaction is R/W
@@ -413,23 +420,22 @@ class trans_mgr:
 
                 for mgr_idx in range(1, 11, 1):
                     mgr = self.data_mgrs[mgr_idx]
-                    if( (mgr.mode == "normal" or mgr.mode == "recovery") and 
-                        self.is_at_mgr(var, mgr_idx) and 
+                    if( self.is_at_mgr(var, mgr_idx) and 
                         mgr.has_lock(trans, var, "read")):
                         prev_lock = mgr.view_lock(var)
                         mgr_with_lock = mgr_idx
                         break
                 
                 if(mgr_with_lock): # Transaction already has lock, no need to try
-                    print(trans, "already has R/W lock for", var, "at", mgr_with_lock)
+                    # (trans, "already has R/W lock for", var, "at", mgr_with_lock)
                     val = None
                     if(prev_lock["type"] == "write"):
                         val = self.data_mgrs[mgr_with_lock].view_mem_val(trans, var)
-                        print(trans, "has W lock, must read", var, "from memory, value =", val)
+                        # (trans, "has W lock, must read", var, "from memory, value =", val)
                     else:
                         val = self.data_mgrs[mgr_with_lock].read_latest_commit(var, self.time)
-                        print(trans, "has R lock, must read", var, "from db, value =", val)
-                    self.out.write(trans + " reads " + var + " = " + val + " from " + new_lock + "\n")
+                        # (trans, "has R lock, must read", var, "from db, value =", val)
+                    self.out.write(trans + " reads " + var + " = " + val + " from " + mgr_with_lock + "\n")
                     self.add_op(trans, var, "read", [mgr_with_lock])
                     return
                 
@@ -439,38 +445,39 @@ class trans_mgr:
                     mgr = self.data_mgrs[mgr_idx]
                     if((mgr.mode == "normal" or (mgr.mode == "recovery" and var in mgr.commited_after_recovery)) and # Site up
                         self.is_at_mgr(var, mgr_idx)): # Variable at site
-                        print("mgr", mgr_idx, "has var", var, "and is not failed")
-                        if(mgr.test_lock_var(trans, var, "read", False)):
+                        # ("mgr", mgr_idx, "has var", var, "and is not failed")
+                        if(mgr.test_lock_var(trans, var, "read", to_lock = False)):
                             new_lock = mgr_idx
                             break
                 
                 # Obtained lock at new_lock
                 if(new_lock): 
                     if(trial):
-                        print("R locking", var, "at", new_lock)
+                        # ("R locking", var, "at", new_lock)
                         return True
-                    self.data_mgrs[new_lock].test_lock_var(trans, var, "read", True)
+                    self.data_mgrs[new_lock].test_lock_var(trans, var, "read", to_lock = True)
                     val = self.data_mgrs[new_lock].read_latest_commit(var, self.time)
-                    print("R locking", var, "at", new_lock, "reading value", val)
+                    # ("R locking", var, "at", new_lock, "reading value", val)
                     self.out.write(trans + " reads " + var + " = " + str(val["value"]) + " from " + str(new_lock) + "\n")
                     self.add_op(trans, var, "read", [new_lock])
                 else:
-                    print("cannot R lock", var, "anywhere, adding to queue, wf graph")
+                    # ("cannot R lock", var, "anywhere, adding to queue, wf graph")
                     if(trial):
                         return False
                     self.out.write(trans + " cannot read " + var + ", so waiting\n")
                     self.add_to_q(trans, var, "read")
                     self.add_to_wf_graph(var)
 
+        # Either commit or abort transaction, depending on checks
         elif(op["cmd"] == "end"):
             trans = op["args"][0]
 
             if(self.trans_set[trans]["aborted"]):
-                print(trans, "already aborted, so no need commit validation/ending")
+                # (trans, "already aborted, so no need commit validation/ending")
                 return
             
             if(self.trans_set[trans]["ro?"]):
-                print("no need any validation for RO transaction", trans)
+                # ("no need any validation for RO transaction", trans)
                 self.out.write("RO commit " + trans + "\n")
             else:
                 # ("validating", trans, self.commit_validation(trans))
@@ -479,7 +486,7 @@ class trans_mgr:
                     for mgr_idx in range(1, 11, 1):
                         mgr = self.data_mgrs[mgr_idx]
                         if(not mgr.mode == "failed"):
-                            print("committing at site", mgr_idx)                    
+                            # ("committing at site", mgr_idx)                    
                             mgr.commit(trans, self.time)
                             mgr.release_all_locks(trans)
                             mgr.free_memory(trans)
@@ -493,10 +500,11 @@ class trans_mgr:
         elif(op["cmd"] == "dump"):
             for mgr_idx in range(1, 11, 1):
                 mgr = self.data_mgrs[mgr_idx]
-                print(mgr_idx, end=" ")
+                # (mgr_idx, end=" ")
                 for (var, q) in self.var_qs.items():
                     if(self.is_at_mgr(var, mgr_idx)):
-                        print(var, ":", mgr.read_latest_commit(var, self.time), end=" ")
-                print()
+                        # (var, ":", mgr.read_latest_commit(var, self.time), end=" ")
+                        pass
+                # ()
 
             self.file_dump()
